@@ -1,0 +1,57 @@
+name: Release
+
+on:
+  release:
+    types: [created]
+
+jobs:
+  release:
+    name: Release - ${{ matrix.platform.os }}
+    runs-on: ${{ matrix.platform.os }}
+    strategy:
+      matrix:
+        platform:
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+            binary_name: doodle
+            asset_name: doodle_linux-amd64
+          - os: macos-latest
+            target: x86_64-apple-darwin
+            binary_name: doodle
+            asset_name: doodle_macos-amd64
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+            binary_name: doodle.exe
+            asset_name: doodle_windows-amd64.exe
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.platform.target }}
+
+      - name: Build
+        run: cargo build --release --target ${{ matrix.platform.target }}
+
+      - name: Prepare asset
+        shell: bash
+        run: |
+          mkdir -p release/
+          if [ "${{ matrix.platform.os }}" = "windows-latest" ]; then
+            cp "target/${{ matrix.platform.target }}/release/${{ matrix.platform.binary_name }}" "release/${{ matrix.platform.asset_name }}"
+          else
+            cp "target/${{ matrix.platform.target }}/release/${{ matrix.platform.binary_name }}" "release/${{ matrix.platform.asset_name }}"
+            chmod +x "release/${{ matrix.platform.asset_name }}"
+          fi
+
+      - name: Upload Release Asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ github.event.release.upload_url }}
+          asset_path: release/${{ matrix.platform.asset_name }}
+          asset_name: ${{ matrix.platform.asset_name }}
+          asset_content_type: application/octet-stream
