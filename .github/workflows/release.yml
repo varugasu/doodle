@@ -8,6 +8,8 @@ jobs:
   release:
     name: Release - ${{ matrix.platform.os }}
     runs-on: ${{ matrix.platform.os }}
+    permissions:
+      contents: write
     strategy:
       matrix:
         platform:
